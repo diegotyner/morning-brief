@@ -1,0 +1,12 @@
+real-samples
+.env
+
+# Maven / Java
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
