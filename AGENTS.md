@@ -6,9 +6,22 @@ A cron-triggered, headless service that reads task/goal data from Notion, comput
 ### Status
 Update status here after functions are added to capture current progress in the repo.
 
-Currently not began. Direct next steps:
+Done:
 - [x] Scaffold project, pom.xml
-- [ ] Set up JUnit test skeleton against the sample
+- [x] ClaudeCodeClient: real subprocess wrapper around headless `claude -p`, unit-tested and empirically verified under cron-like conditions (see architectural decision #1)
+- [x] NotionModels + NotionExtractor: records + small reusable per-property-shape deserializers (title/rich_text, status/select, number/rollup/formula, relation, date, created_time/last_edited_time), tested against the three fixtures. `fetchX` empirically verified live (see below). Along the way, found and removed 3 undocumented, unused Tasks properties (Place, a bare Date, Total Mins Copy) from both the real capture and the sanitized fixture — since deleted from Notion itself, so the fixture now matches the live schema exactly again.
+- [x] SnapshotBuilder: joins tasks to their parent project(s) via each task's own Parent relation (not the project's Child Tasks - not assumed authoritative), tolerates dangling relation ids (mirrors a real one found in the data), resolves "latest session note per task" by max-date over that task's Minutes entries. No filtering/ranking - every project/task passed in appears in the output; that judgment is Claude's job at PromptBuilder, not this layer's.
+- [x] DigestLog: minimal on purpose - one entry, not an accumulating history (per architectural decision #3). `LogEntry(String date, String recommendation)` stores the LLM's raw text as-is; `date` is a plain ISO string, not `LocalDate`, to avoid a jackson-datatype-jsr310 dependency for one flat field. No atomic write, no directory auto-creation, no retry - deliberately skipped for now to prioritize reaching a working demo over hardening.
+
+Path to the working demo (complete):
+- [x] PromptBuilder: plain-text prompt (framing + yesterday's recommendation if any + per-project/per-task rendering + closing ask), null-safe so unset fields are omitted rather than printed as "null". First-draft wording - to be tuned once real output from an actual run is visible, not polished blind.
+- [x] DiscordNotifier: webhook POST via java.net.http.HttpClient, JSON body built with Jackson (not string concat), truncates to Discord's 2000-char content limit. Empirically verified live (see below).
+- [x] Main.java: wired NotionExtractor -> SnapshotBuilder -> PromptBuilder/ClaudeCodeClient -> DiscordNotifier -> DigestLog. Has a `--dry-run` flag (parses the checked-in sanitized fixtures instead of NotionExtractor.fetchX, prints to stdout instead of DiscordNotifier.send) used to verify the pipeline safely before the live run - see roadmap below for how `--dry-run` was validated.
+- [x] First real end-to-end run against live Notion + live Discord (you asked for it explicitly). No errors - real Notion fetch, real SnapshotBuilder join, real Claude ranking (correctly identified this very project as the highest-priority task, since other work is blocked on it), real Discord post, real digest-log.json write. This is the first genuinely working version of the whole tool, not just individually-tested pieces.
+
+MVP pipeline complete - everything below is hardening/polish, not required for the tool to work:
+- [ ] Guard NotionExtractor.fetchAllPages against an infinite loop if Notion ever returns has_more=true with no next_cursor - low probability, but the failure mode is a cron job hanging forever, not a clean failure
+- [ ] Revisit whether TaskSnapshot needs created/edited timestamps once PromptBuilder's actual "how stale is this task" needs are known - not needed yet, cheap to add later
 
 ### Behavior
 

@@ -29,14 +29,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -95,16 +87,6 @@
               "href": null
             }
           ]
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -204,14 +186,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -267,16 +241,6 @@
               "href": null
             }
           ]
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -376,14 +340,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -417,16 +373,6 @@
           "id": "prop0032",
           "type": "rich_text",
           "rich_text": []
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -526,14 +472,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -585,16 +523,6 @@
               "href": null
             }
           ]
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -694,14 +622,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -735,16 +655,6 @@
           "id": "prop0032",
           "type": "rich_text",
           "rich_text": []
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -844,14 +754,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -885,16 +787,6 @@
           "id": "prop0032",
           "type": "rich_text",
           "rich_text": []
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
@@ -994,14 +886,6 @@
           "type": "rich_text",
           "rich_text": []
         },
-        "Total Mins Copy": {
-          "id": "prop0026",
-          "type": "formula",
-          "formula": {
-            "type": "number",
-            "number": 0
-          }
-        },
         "Priority": {
           "id": "prop0027",
           "type": "select",
@@ -1035,16 +919,6 @@
           "id": "prop0032",
           "type": "rich_text",
           "rich_text": []
-        },
-        "Place": {
-          "id": "prop0033",
-          "type": "place",
-          "place": null
-        },
-        "Date": {
-          "id": "prop0034",
-          "type": "date",
-          "date": null
         },
         "Total Mins": {
           "id": "prop0035",
