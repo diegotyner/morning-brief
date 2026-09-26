@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -17,6 +18,7 @@ import java.util.Map;
 public final class DiscordNotifier {
 
     private static final int MAX_CONTENT_LENGTH = 2000; // Discord's hard limit on webhook content
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private DiscordNotifier() {
@@ -26,10 +28,12 @@ public final class DiscordNotifier {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(webhookUrl))
             .header("Content-Type", "application/json")
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(buildPayload(content)))
             .build();
 
-        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200 && response.statusCode() != 204) {
             throw new IOException("Discord webhook request failed: HTTP " + response.statusCode() + " - " + response.body());
         }

@@ -87,12 +87,13 @@ class PromptBuilderTest {
     }
 
     @Test
-    void endsWithARecommendationRequest() {
+    void endsWithARankedListRequestNotASinglePick() {
         DigestSnapshot snapshot = new DigestSnapshot(List.of(), List.of());
 
         String prompt = PromptBuilder.build(snapshot, Optional.empty());
 
-        assertTrue(prompt.contains("highest-value thing I should work on today"));
+        assertTrue(prompt.contains("ranked list"));
+        assertTrue(prompt.contains("not just a single pick"));
     }
 
     @Test

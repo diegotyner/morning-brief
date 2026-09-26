@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import java.util.List;
 public class NotionExtractor {
 
     private static final String NOTION_VERSION = "2022-06-28";
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private static final ObjectMapper MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -35,7 +37,7 @@ public class NotionExtractor {
     private final HttpClient httpClient;
 
     public NotionExtractor(String notionToken) {
-        this(notionToken, HttpClient.newHttpClient());
+        this(notionToken, HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build());
     }
 
     NotionExtractor(String notionToken, HttpClient httpClient) {
@@ -95,6 +97,7 @@ public class NotionExtractor {
                 .header("Authorization", "Bearer " + notionToken)
                 .header("Notion-Version", NOTION_VERSION)
                 .header("Content-Type", "application/json")
+                .timeout(REQUEST_TIMEOUT)
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 

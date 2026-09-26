@@ -2,6 +2,9 @@ package digest.llm;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,14 @@ public class ClaudeCodeClientManualVerification {
         System.out.println();
         System.out.println("=== Run B: cron simulation (minimal PATH, no TTY) ===");
         runCronSimulationAndPrint(claudePath);
+
+        System.out.println();
+        System.out.println("=== Run C: isLoggedIn() against the real cached login ===");
+        System.out.println("isLoggedIn: " + new ClaudeCodeClient(claudePath).isLoggedIn());
+
+        System.out.println();
+        System.out.println("=== Run D: isLoggedIn() against a deliberately broken environment (expect false) ===");
+        runBrokenAuthAndPrint(claudePath);
     }
 
     private static void runAndPrint(ClaudeCodeClient client) throws Exception {
@@ -76,5 +87,51 @@ public class ClaudeCodeClientManualVerification {
         }
         System.out.println("exit code: " + process.exitValue());
         System.out.println("output:\n" + output);
+    }
+
+    /**
+     * Never touches real credentials - builds an isolated fake HOME with a deliberately garbage
+     * .claude/.credentials.json (empirically confirmed during investigation to collapse to the
+     * same loggedIn:false shape as genuinely-missing credentials, so this one case covers both),
+     * runs the real auth-status command against it, and parses the result through
+     * ClaudeCodeClient.parseLoggedIn - the same pure parser the unit tests exercise. This is the
+     * real, empirical "false" case; the unit tests only cover the JSON-parsing slice of it.
+     */
+    private static void runBrokenAuthAndPrint(String claudePath) throws Exception {
+        Path fakeHome = Files.createTempDirectory("morning-brief-fake-home");
+        try {
+            Path claudeDir = Files.createDirectory(fakeHome.resolve(".claude"));
+            Files.writeString(claudeDir.resolve(".credentials.json"), "{\"invalid\":\"corrupted-token-data\"}");
+
+            List<String> command = new ClaudeCodeClient(claudePath).buildAuthStatusCommand();
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            pb.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
+            pb.environment().clear();
+            pb.environment().put("HOME", fakeHome.toString());
+            pb.environment().put("PATH", CRON_DEFAULT_PATH);
+
+            Process process = pb.start();
+            String output = new String(process.getInputStream().readAllBytes());
+            boolean finished = process.waitFor(120, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                System.out.println("TIMED OUT after 120s");
+                return;
+            }
+
+            System.out.println("exit code: " + process.exitValue());
+            System.out.println("isLoggedIn: " + ClaudeCodeClient.parseLoggedIn(output));
+        } finally {
+            try (var paths = Files.walk(fakeHome)) {
+                paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (Exception ignored) {
+                        // best-effort cleanup of a throwaway temp dir
+                    }
+                });
+            }
+        }
     }
 }

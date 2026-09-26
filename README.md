@@ -47,4 +47,4 @@ mvn test      # run the JUnit suite
 
 ## Status
 
-Early development. See `AGENTS.md` for the current task checklist and contributor/agent-specific behavior rules.
+Working MVP - runs end-to-end against live Notion and Discord. See `TODO.md` for the current task checklist and known issues, `ARCHITECTURE.md` for design decisions, and `AGENTS.md` for agent-specific behavior rules.

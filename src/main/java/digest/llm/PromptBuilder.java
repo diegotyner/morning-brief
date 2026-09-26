@@ -47,8 +47,10 @@ public final class PromptBuilder {
         }
 
         prompt.append("""
-            Based on all of this, what's the single highest-value thing I should work on today?
-            Give me a short, direct recommendation with your reasoning.
+            Based on all of this, give me a short ranked list (3-5 items) of what's worth working
+            on today, most valuable first - not just a single pick. For each item: the task or
+            project name, and one line of reasoning. I'll choose which ones to actually tackle
+            myself, so surface real options rather than deciding for me.
             """);
 
         return prompt.toString();

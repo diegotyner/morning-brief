@@ -54,6 +54,17 @@ public class Main {
     }
 
     private static void run(Dotenv dotenv, boolean dryRun) throws IOException, InterruptedException {
+        ClaudeCodeClient claude = new ClaudeCodeClient(dotenv.get("CLAUDE_EXECUTABLE_PATH"));
+
+        if (!claude.isLoggedIn()) {
+            String alert = "Claude Code is not logged in on this machine - no digest was generated. "
+                + "Run `claude auth login` (or `/login`) to fix this.";
+            deliver(dryRun, dotenv, alert);
+            System.err.println(alert);
+            System.exit(1);
+            return;
+        }
+
         Optional<LogEntry> yesterday = DigestLog.read(DIGEST_LOG_PATH);
 
         List<LongTermPage> longTerm;
@@ -74,20 +85,23 @@ public class Main {
         DigestSnapshot snapshot = SnapshotBuilder.build(longTerm, tasks, minutes);
         String prompt = PromptBuilder.build(snapshot, yesterday);
 
-        ClaudeCodeClient claude = new ClaudeCodeClient(dotenv.get("CLAUDE_EXECUTABLE_PATH"));
         ClaudeCodeResult result = claude.run(prompt);
         String digest = result.output();
 
-        if (dryRun) {
-            System.out.println("=== DRY RUN: digest that would be posted to Discord ===");
-            System.out.println(digest);
-        } else {
-            DiscordNotifier.send(dotenv.get("DISCORD_WEBHOOK_URL"), digest);
-        }
-
+        deliver(dryRun, dotenv, digest);
         DigestLog.write(DIGEST_LOG_PATH, new LogEntry(LocalDate.now().toString(), digest));
 
         System.out.println(dryRun ? "Digest complete (dry run)." : "Digest complete and posted to Discord.");
+    }
+
+    /** dry-run prints instead of posting - used for both the normal digest and the auth-failure alert, so dry-run never touches the real webhook either way. */
+    private static void deliver(boolean dryRun, Dotenv dotenv, String content) throws IOException, InterruptedException {
+        if (dryRun) {
+            System.out.println("=== DRY RUN: message that would be posted to Discord ===");
+            System.out.println(content);
+        } else {
+            DiscordNotifier.send(dotenv.get("DISCORD_WEBHOOK_URL"), content);
+        }
     }
 
     /** Dry-run only: reads the checked-in sanitized fixtures directly off the project's source tree. */
