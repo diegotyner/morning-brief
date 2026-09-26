@@ -8,6 +8,7 @@ This is the always-loaded agent context - kept short and stable on purpose. See 
 - Never guess Notion's JSON response shape — match the corresponding src/test/resources/notion-sample-*.json fixture exactly for each database.
 - Never write a Claude API key or HTTP client for the LLM step — the only path is the claude -p subprocess via ClaudeCodeClient.
 - Don't add retry/backoff, caching, or config layers unless asked — this is a single-cron-run script, not a service.
+- Branch convention: `dev` is the active work branch; `main` gets fast-forwarded to `dev` periodically and is also where the homelab deploy (real cron job, crontab entries, deploy-specific config) always lives - don't be surprised by deploy-only commits appearing on `main` directly rather than `dev`.
 
 ### Secrets
 

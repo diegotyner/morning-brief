@@ -28,6 +28,7 @@ The ranking step shells out to headless Claude Code (`claude -p ... --output-for
 morning-brief/
 ├── pom.xml
 ├── .env                          # NOTION_TOKEN, DB IDs, DISCORD_WEBHOOK_URL, CLAUDE_EXECUTABLE_PATH
+├── AGENTS.md / ARCHITECTURE.md / TODO.md   # see ARCHITECTURE.md's own copy of this tree for what each holds
 ├── src/main/java/digest/
 │   ├── notion/NotionExtractor.java, NotionModels.java
 │   ├── aggregate/SnapshotBuilder.java
