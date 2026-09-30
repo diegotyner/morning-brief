@@ -1,6 +1,7 @@
 real-samples
 .env
 digest-log.json
+cron.log
 
 # Maven / Java
 target/
