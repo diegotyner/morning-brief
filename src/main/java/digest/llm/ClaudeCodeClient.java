@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -16,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 public class ClaudeCodeClient {
 
     private static final long TIMEOUT_SECONDS = 120;
+    private static final int MAX_ATTEMPTS = 3;
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(60); // matches the error's own "retry in a minute"
+    private static final String TRANSIENT_OAUTH_REFRESH_ERROR = "Failed to refresh OAuth token";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String executablePath;
@@ -62,18 +66,44 @@ public class ClaudeCodeClient {
     }
 
     /**
-     * Shared subprocess-launching logic for run() and isLoggedIn(). Output (stderr merged into
-     * stdout via ProcessBuilder#redirectErrorStream) is redirected straight to a temp file instead
-     * of read from a pipe - piped output has a bounded kernel buffer, so reading it can block
-     * until the process writes/closes, which defeats waitFor's timeout entirely if the process
-     * hangs without closing its output (confirmed as a real bug: the previous pipe-based version
-     * read to EOF *before* waitFor(timeout) was ever reached, so a hung process never timed out).
-     * Redirecting to a file removes that blocking read from the picture, so waitFor(timeout)
-     * genuinely bounds the wait either way. stdin is redirected from /dev/null - without this,
-     * claude spends ~3s waiting to see if piped input is coming and prints a warning into the
-     * very output we need to parse (confirmed empirically).
+     * Retry wrapper around launchOnce(), specifically for the one known-transient failure this
+     * project has actually observed in production (an OAuth refresh lock race under cron) - not a
+     * general retry-on-any-failure policy. Every other failure (including a genuinely broken
+     * login) returns on the first attempt, unchanged.
      */
     private ClaudeCodeResult launch(List<String> command) throws IOException, InterruptedException {
+        ClaudeCodeResult result = launchOnce(command);
+        for (int attempt = 2; attempt <= MAX_ATTEMPTS && isRetryableFailure(result); attempt++) {
+            System.err.println("Claude Code hit a transient OAuth refresh error, retrying (attempt " + attempt + "/" + MAX_ATTEMPTS + ")...");
+            Thread.sleep(RETRY_DELAY.toMillis());
+            result = launchOnce(command);
+        }
+        return result;
+    }
+
+    /**
+     * Pure and package-private specifically so this is unit-testable without a real process -
+     * matches the exact error text captured from a real production failure, not a guess. Text-only
+     * (not gated on exit code), since we've never actually confirmed what exit code this specific
+     * error produces - gating on an unverified assumption risks a retry that silently never fires.
+     */
+    static boolean isRetryableFailure(ClaudeCodeResult result) {
+        return result.output().contains(TRANSIENT_OAUTH_REFRESH_ERROR);
+    }
+
+    /**
+     * One subprocess invocation. Output (stderr merged into stdout via
+     * ProcessBuilder#redirectErrorStream) is redirected straight to a temp file instead of read
+     * from a pipe - piped output has a bounded kernel buffer, so reading it can block until the
+     * process writes/closes, which defeats waitFor's timeout entirely if the process hangs without
+     * closing its output (confirmed as a real bug: the previous pipe-based version read to EOF
+     * *before* waitFor(timeout) was ever reached, so a hung process never timed out). Redirecting
+     * to a file removes that blocking read from the picture, so waitFor(timeout) genuinely bounds
+     * the wait either way. stdin is redirected from /dev/null - without this, claude spends ~3s
+     * waiting to see if piped input is coming and prints a warning into the very output we need to
+     * parse (confirmed empirically).
+     */
+    private ClaudeCodeResult launchOnce(List<String> command) throws IOException, InterruptedException {
         File outputFile = File.createTempFile("claude-code-output-", ".txt");
         try {
             Process process = new ProcessBuilder(command)

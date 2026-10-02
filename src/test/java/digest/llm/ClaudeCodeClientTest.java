@@ -1,5 +1,6 @@
 package digest.llm;
 
+import digest.llm.ClaudeCodeClient.ClaudeCodeResult;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -63,5 +64,34 @@ class ClaudeCodeClientTest {
             """;
 
         assertFalse(ClaudeCodeClient.parseLoggedIn(json));
+    }
+
+    // isRetryableFailure cases - the OAuth-refresh-error text is the real string captured from a
+    // production failure, not a guess.
+
+    @Test
+    void isRetryableFailureDetectsTheKnownTransientOAuthError() {
+        ClaudeCodeResult result = new ClaudeCodeResult(1,
+            "Failed to refresh OAuth token: another Claude Code process is refreshing it or exited "
+                + "mid-refresh. This is usually transient; retry in a minute, and if it persists "
+                + "close other Claude Code processes or sign in again");
+
+        assertTrue(ClaudeCodeClient.isRetryableFailure(result));
+    }
+
+    @Test
+    void isRetryableFailureIsFalseForOrdinarySuccessfulOutput() {
+        ClaudeCodeResult result = new ClaudeCodeResult(0, "1. Finish the CI pipeline work - it's blocking two other tasks.");
+
+        assertFalse(ClaudeCodeClient.isRetryableFailure(result));
+    }
+
+    @Test
+    void isRetryableFailureIsFalseForADifferentNonTransientError() {
+        // "not logged in" needs a human to re-auth - retrying blindly would just burn time for
+        // no reason, so this must not be treated as retryable.
+        ClaudeCodeResult result = new ClaudeCodeResult(1, "Not logged in · Please run /login");
+
+        assertFalse(ClaudeCodeClient.isRetryableFailure(result));
     }
 }

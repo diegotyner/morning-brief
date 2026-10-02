@@ -57,11 +57,8 @@ public class Main {
         ClaudeCodeClient claude = new ClaudeCodeClient(dotenv.get("CLAUDE_EXECUTABLE_PATH"));
 
         if (!claude.isLoggedIn()) {
-            String alert = "Claude Code is not logged in on this machine - no digest was generated. "
-                + "Run `claude auth login` (or `/login`) to fix this.";
-            deliver(dryRun, dotenv, alert);
-            System.err.println(alert);
-            System.exit(1);
+            failWithAlert(dryRun, dotenv, "Claude Code is not logged in on this machine - no digest was generated. "
+                + "Run `claude auth login` (or `/login`) to fix this.");
             return;
         }
 
@@ -86,6 +83,10 @@ public class Main {
         String prompt = PromptBuilder.build(snapshot, yesterday);
 
         ClaudeCodeResult result = claude.run(prompt);
+        if (result.exitCode() != 0) {
+            failWithAlert(dryRun, dotenv, "Claude Code ranking step failed (exit code " + result.exitCode() + "):\n" + result.output());
+            return;
+        }
         String digest = result.output();
 
         deliver(dryRun, dotenv, digest);
@@ -94,7 +95,20 @@ public class Main {
         System.out.println(dryRun ? "Digest complete (dry run)." : "Digest complete and posted to Discord.");
     }
 
-    /** dry-run prints instead of posting - used for both the normal digest and the auth-failure alert, so dry-run never touches the real webhook either way. */
+    /**
+     * Shared shape for both failure branches above: print the real cause first (so it survives
+     * even if delivery itself throws), alert through the same dry-run-aware path as a normal
+     * digest, then exit without ever calling DigestLog.write - neither an auth failure nor a
+     * failed ranking call is a real recommendation, and logging either would corrupt tomorrow's
+     * continuity prompt.
+     */
+    private static void failWithAlert(boolean dryRun, Dotenv dotenv, String alert) throws IOException, InterruptedException {
+        System.err.println(alert);
+        deliver(dryRun, dotenv, alert);
+        System.exit(1);
+    }
+
+    /** dry-run prints instead of posting - used for the normal digest and both failure alerts, so dry-run never touches the real webhook either way. */
     private static void deliver(boolean dryRun, Dotenv dotenv, String content) throws IOException, InterruptedException {
         if (dryRun) {
             System.out.println("=== DRY RUN: message that would be posted to Discord ===");

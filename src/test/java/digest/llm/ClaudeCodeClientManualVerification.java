@@ -54,6 +54,10 @@ public class ClaudeCodeClientManualVerification {
         System.out.println();
         System.out.println("=== Run D: isLoggedIn() against a deliberately broken environment (expect false) ===");
         runBrokenAuthAndPrint(claudePath);
+
+        System.out.println();
+        System.out.println("=== Run E: retry recovery - fails once with the real OAuth error text, succeeds on retry ===");
+        runRetryRecoveryAndPrint();
     }
 
     private static void runAndPrint(ClaudeCodeClient client) throws Exception {
@@ -124,6 +128,52 @@ public class ClaudeCodeClientManualVerification {
             System.out.println("isLoggedIn: " + ClaudeCodeClient.parseLoggedIn(output));
         } finally {
             try (var paths = Files.walk(fakeHome)) {
+                paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (Exception ignored) {
+                        // best-effort cleanup of a throwaway temp dir
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * A fake executable that fails exactly once with the real, verbatim OAuth-refresh error text
+     * (captured from an actual production failure), then succeeds on its second invocation -
+     * state tracked via a counter file, since each invocation is a fresh process. Proves the
+     * retry loop in ClaudeCodeClient.launch() actually re-invokes and recovers, not just that the
+     * pure isRetryableFailure() detection works on a canned string. Takes ~60s (one retry delay).
+     */
+    private static void runRetryRecoveryAndPrint() throws Exception {
+        Path tempDir = Files.createTempDirectory("morning-brief-retry-test");
+        try {
+            Path counterFile = tempDir.resolve("call-count");
+            Path fakeScript = tempDir.resolve("fake-claude.sh");
+
+            String scriptContent = "#!/bin/bash\n"
+                + "COUNTER_FILE=\"" + counterFile + "\"\n"
+                + "if [ ! -f \"$COUNTER_FILE\" ]; then\n"
+                + "  echo 1 > \"$COUNTER_FILE\"\n"
+                + "  echo \"Failed to refresh OAuth token: another Claude Code process is refreshing it or exited mid-refresh. This is usually transient; retry in a minute, and if it persists close other Claude Code processes or sign in again\"\n"
+                + "  exit 1\n"
+                + "else\n"
+                + "  echo \"PONG (recovered on retry)\"\n"
+                + "  exit 0\n"
+                + "fi\n";
+            Files.writeString(fakeScript, scriptContent);
+            fakeScript.toFile().setExecutable(true);
+
+            long start = System.currentTimeMillis();
+            ClaudeCodeClient.ClaudeCodeResult result = new ClaudeCodeClient(fakeScript.toString()).run(PROMPT);
+            long elapsedSeconds = (System.currentTimeMillis() - start) / 1000;
+
+            System.out.println("elapsed: " + elapsedSeconds + "s");
+            System.out.println("exit code: " + result.exitCode());
+            System.out.println("output: " + result.output());
+        } finally {
+            try (var paths = Files.walk(tempDir)) {
                 paths.sorted(Comparator.reverseOrder()).forEach(path -> {
                     try {
                         Files.delete(path);
