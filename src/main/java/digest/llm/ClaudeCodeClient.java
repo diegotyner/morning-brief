@@ -92,6 +92,18 @@ public class ClaudeCodeClient {
     }
 
     /**
+     * Whether a result should be treated as a failed invocation overall - not just during the
+     * retry loop. Exit code alone isn't trustworthy: confirmed empirically in production that
+     * `claude -p` can exit 0 while its entire output is the OAuth-refresh error text (it slipped
+     * past a plain exitCode() != 0 check and got posted/logged as a real digest). So this also
+     * falls back to the same known-bad-text match retry already uses, rather than teaching callers
+     * a new fact about the subprocess - they just ask "did this fail?"
+     */
+    static boolean isFailure(ClaudeCodeResult result) {
+        return result.exitCode() != 0 || isRetryableFailure(result);
+    }
+
+    /**
      * One subprocess invocation. Output (stderr merged into stdout via
      * ProcessBuilder#redirectErrorStream) is redirected straight to a temp file instead of read
      * from a pipe - piped output has a bounded kernel buffer, so reading it can block until the

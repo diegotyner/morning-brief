@@ -83,7 +83,7 @@ public class Main {
         String prompt = PromptBuilder.build(snapshot, yesterday);
 
         ClaudeCodeResult result = claude.run(prompt);
-        if (result.exitCode() != 0) {
+        if (ClaudeCodeClient.isFailure(result)) {
             failWithAlert(dryRun, dotenv, "Claude Code ranking step failed (exit code " + result.exitCode() + "):\n" + result.output());
             return;
         }

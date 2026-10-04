@@ -94,4 +94,31 @@ class ClaudeCodeClientTest {
 
         assertFalse(ClaudeCodeClient.isRetryableFailure(result));
     }
+
+    // isFailure cases - exit code alone isn't trustworthy: confirmed in production (2026-10-03)
+    // that claude -p can exit 0 while its entire output is the OAuth-refresh error text.
+
+    @Test
+    void isFailureIsFalseForOrdinarySuccessfulOutput() {
+        ClaudeCodeResult result = new ClaudeCodeResult(0, "1. Finish the CI pipeline work - it's blocking two other tasks.");
+
+        assertFalse(ClaudeCodeClient.isFailure(result));
+    }
+
+    @Test
+    void isFailureIsTrueForTheKnownTransientErrorEvenWithExitCodeZero() {
+        ClaudeCodeResult result = new ClaudeCodeResult(0,
+            "Failed to refresh OAuth token: another Claude Code process is refreshing it or exited "
+                + "mid-refresh. This is usually transient; retry in a minute, and if it persists "
+                + "close other Claude Code processes or sign in again");
+
+        assertTrue(ClaudeCodeClient.isFailure(result));
+    }
+
+    @Test
+    void isFailureIsTrueForANonzeroExitCodeRegardlessOfOutput() {
+        ClaudeCodeResult result = new ClaudeCodeResult(1, "some unrelated error output");
+
+        assertTrue(ClaudeCodeClient.isFailure(result));
+    }
 }
