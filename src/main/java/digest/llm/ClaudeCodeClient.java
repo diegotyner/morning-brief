@@ -99,7 +99,7 @@ public class ClaudeCodeClient {
      * falls back to the same known-bad-text match retry already uses, rather than teaching callers
      * a new fact about the subprocess - they just ask "did this fail?"
      */
-    static boolean isFailure(ClaudeCodeResult result) {
+    public static boolean isFailure(ClaudeCodeResult result) {
         return result.exitCode() != 0 || isRetryableFailure(result);
     }
 

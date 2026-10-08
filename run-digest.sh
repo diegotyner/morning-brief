@@ -12,4 +12,4 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/
 # Self-locating: works no matter what directory this script is invoked from.
 cd "$(dirname "$0")"
 
-mvn -q exec:java -Dexec.args="$*"
+mvn -q compile exec:java -Dexec.args="$*"
